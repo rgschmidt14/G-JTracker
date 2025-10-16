@@ -1,9 +1,15 @@
 import { gameData, getItem, findLooseEnds, evolveItem, saveData, getChildren, getCharItemLevel } from './data.js';
 import { getLevelGrade } from './utils.js';
+import { renderRPGView as renderRPGViewFromModule } from './rpg.js';
 
-let currentView = 'db'; // or a function reference
+let currentView = 'db';
 
 export function renderCurrentView() {
+    // Hide all containers first
+    hideGraphContainer();
+    hideNotebookContainer();
+    hideRPGContainer();
+
     switch (currentView) {
         case 'db':
             renderDBView();
@@ -29,7 +35,6 @@ function updateChecklist(charId, itemId, lvl, idx, checked) {
     if (!charItem.checklistProgress[lvl]) charItem.checklistProgress[lvl] = [];
     charItem.checklistProgress[lvl][idx] = checked;
 
-    // Check for level up
     const item = getItem(itemId);
     const checklist = item.checklists[charItem.level + 1] || [];
     const progress = charItem.checklistProgress[charItem.level + 1] || [];
@@ -91,7 +96,6 @@ export function createItemCard(item, charId = null) {
         </div>
     `;
 
-    // Add event listeners
     if (charId) {
         card.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', () => {
@@ -112,8 +116,7 @@ export function createItemCard(item, charId = null) {
 
 export function renderDBView() {
     currentView = 'db';
-    hideNotebookContainer();
-    document.getElementById('right-pane').innerHTML = ''; // Clear the pane
+    document.getElementById('right-pane').innerHTML = '';
     const graphContainer = document.getElementById('db-graph-container');
     if (graphContainer) graphContainer.style.display = 'block';
 
@@ -136,7 +139,7 @@ export function renderDBView() {
         layout: {
             hierarchical: {
                 enabled: true,
-                direction: 'UD', // Up-Down
+                direction: 'UD',
                 sortMethod: 'directed',
             },
         },
@@ -170,6 +173,11 @@ function hideNotebookContainer() {
     if (notebookContainer) notebookContainer.style.display = 'none';
 }
 
+function hideRPGContainer() {
+    const rpgContainer = document.getElementById('rpg-container');
+    if (rpgContainer) rpgContainer.style.display = 'none';
+}
+
 function createProgressBar(level) {
     const progress = (level / 7) * 100;
     return `
@@ -182,7 +190,6 @@ function createProgressBar(level) {
 
 export function renderNotebookView() {
     currentView = 'notebook';
-    hideGraphContainer();
     document.getElementById('notebook-container').style.display = 'block';
 
     const me = gameData.characters.find(c => c.name === 'Me');
@@ -234,27 +241,14 @@ export function renderNotebookView() {
     }
 }
 
-export function renderRPGView() {
+function renderRPGView() {
     currentView = 'rpg';
-    hideGraphContainer();
-    hideNotebookContainer();
-    const container = document.getElementById('right-pane');
-    container.innerHTML = '<h2>RPG</h2>';
-    gameData.parties.forEach(party => {
-        const partyDiv = document.createElement('div');
-        partyDiv.innerHTML = `<h3>${party.name}</h3>`;
-        party.charIds.forEach(charId => {
-            const char = gameData.characters.find(c => c.id === charId);
-            partyDiv.appendChild(createItemCard(getItem('placeholder'), char.id)); // Expand as needed
-        });
-        container.appendChild(partyDiv);
-    });
+    document.getElementById('rpg-container').style.display = 'block';
+    renderRPGViewFromModule();
 }
 
 export function renderReferenceView() {
     currentView = 'reference';
-    hideGraphContainer();
-    hideNotebookContainer();
     const container = document.getElementById('right-pane');
     container.innerHTML = `
         <h2>Reference</h2>
@@ -333,7 +327,6 @@ export function renderSearchResults() {
     const results = document.getElementById('search-results');
     results.innerHTML = '';
 
-    // Get filter values
     const query = document.getElementById('search-bar').value.toLowerCase();
     const typeFilters = Array.from(document.querySelectorAll('.filter:checked')).map(f => f.value);
     const looseFilter = document.getElementById('filter-loose').checked;
@@ -343,21 +336,11 @@ export function renderSearchResults() {
     const levelMax = parseInt(document.getElementById('filter-level-max').value) || 7;
 
     const filteredItems = gameData.items.filter(item => {
-        // Text search
         if (query && !item.name.toLowerCase().includes(query)) return false;
-
-        // Type filter
         if (typeFilters.length && !typeFilters.includes(item.type)) return false;
-
-        // Loose ends filter
         if (looseFilter && !findLooseEnds().some(l => l.id === item.id)) return false;
-
-        // Tier range
         if (item.tier < tierMin || item.tier > tierMax) return false;
-
-        // Level range
         if (item.level < levelMin || item.level > levelMax) return false;
-
         return true;
     });
 
@@ -370,8 +353,6 @@ export function renderSearchResults() {
 }
 
 export function renderFocalItem(id) {
-    hideGraphContainer();
-    hideNotebookContainer();
     const container = document.getElementById('right-pane');
     const item = getItem(id);
     if (!item) return;
@@ -388,7 +369,6 @@ export function renderFocalItem(id) {
 
     document.getElementById('focal-item-card').appendChild(createItemCard(item));
 
-    // Render Parent Graph
     const parents = item.parents.map(p => getItem(p.id)).filter(Boolean);
     if (parents.length > 0) {
         const parentNodes = new vis.DataSet(parents.map(p => ({ id: p.id, label: p.name })));
@@ -399,7 +379,6 @@ export function renderFocalItem(id) {
         document.getElementById('focal-parents-graph').innerHTML += '<p>None</p>';
     }
 
-    // Render Children Graph
     const children = getChildren(id);
     if (children.length > 0) {
         const childNodes = new vis.DataSet(children.map(c => ({ id: c.id, label: c.name })));

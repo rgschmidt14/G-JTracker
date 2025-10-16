@@ -31,9 +31,54 @@ export function loadData() {
     gameData.characters.forEach(char => {
         if (!char.goals) char.goals = [];
         if (!char.journals) char.journals = {};
+        if (!char.xp) char.xp = 0;
     });
 
+    gameData.parties.forEach(party => {
+        if(!party.tempBoosts) party.tempBoosts = [];
+    })
+
     applyTheme();
+}
+
+export function createCharacter(name) {
+    const newChar = {
+        id: `char_${Date.now()}`,
+        name,
+        items: [],
+        xp: 0,
+        journals: {}
+    };
+    gameData.characters.push(newChar);
+    saveData();
+    return newChar;
+}
+
+export function createParty(name, charIds) {
+    const newParty = {
+        id: `party_${Date.now()}`,
+        name,
+        charIds,
+        tempBoosts: []
+    };
+    gameData.parties.push(newParty);
+    saveData();
+    return newParty;
+}
+
+export function toggleEnhancement(itemId) {
+    const item = getItem(itemId);
+    if (!item) return;
+
+    if (!item.enhanced) {
+        if (confirm("Drugs ruin lives—use for story only! Enhance this item?")) {
+            item.enhanced = true;
+            saveData();
+        }
+    } else {
+        item.enhanced = false;
+        saveData();
+    }
 }
 
 export function getItem(id) {
@@ -98,6 +143,29 @@ export function evolveItem(id) {
     });
 
     saveData();
+}
+
+export function addXp(charId, amount) {
+    const char = gameData.characters.find(c => c.id === charId);
+    if (char) {
+        char.xp += amount;
+        saveData();
+    }
+}
+
+export function spendXp(charId, itemId) {
+    const char = gameData.characters.find(c => c.id === charId);
+    const charItem = char?.items.find(i => i.id === itemId);
+    if (!char || !charItem) return;
+
+    const cost = (charItem.level + 1) * 10; // Configurable cost
+    if (char.xp >= cost) {
+        char.xp -= cost;
+        incrementLevel(itemId, charId);
+        saveData();
+    } else {
+        alert('Not enough XP.');
+    }
 }
 
 export function incrementLevel(id, charId = null) {

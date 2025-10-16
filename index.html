@@ -67,13 +67,16 @@
                 </div>
                 <div id="db-graph"></div>
             </div>
-            <div id="notebook-container">
+            <div id="notebook-container" style="display: none;">
                 <div id="notebook-header">
                     <h2>Notebook</h2>
                     <button id="export-pdf-btn">Export Notebook to PDF</button>
                 </div>
                 <div id="notebook-me-char-sheet"></div>
                 <div id="notebook-goals"></div>
+            </div>
+            <div id="rpg-container" style="display: none;">
+                 <!-- RPG content will be rendered here -->
             </div>
         </div>
     </main>
@@ -88,5 +91,6 @@
     </div>
     <input type="file" id="csv-file" accept=".csv" style="display:none;">
     <script type="module" src="scripts/app.js"></script>
+    <script type="module" src="scripts/rpg.js"></script>
 </body>
 </html>
