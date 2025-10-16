@@ -1,5 +1,5 @@
 import { gameData, updateTiers, saveData } from './data.js';
-import { renderCurrentView } from './ui.js';
+import { renderCurrentView, renderSearchResults } from './ui.js';
 
 export function handleCSVImport(e) {
     const file = e.target.files[0];
@@ -42,6 +42,8 @@ export function handleCSVImport(e) {
             updateTiers();
             saveData();
             renderCurrentView();
+            renderSearchResults();
+            console.log('CSV import complete');
         }
     });
 }

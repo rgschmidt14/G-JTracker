@@ -33,16 +33,40 @@
         <div id="left-pane">
             <input type="text" id="search-bar" placeholder="Search...">
             <div id="filter-controls">
-                <!-- Filters: type, tier, level, loose ends -->
-                <label><input type="checkbox" class="filter" value="skill"> Skills</label>
-                <label><input type="checkbox" class="filter" value="faculty"> Faculties</label>
-                <label><input type="checkbox" class="filter" value="factor"> Factors</label>
-                <label><input type="checkbox" id="filter-loose"> Loose Ends</label>
+                <!-- Type Filters -->
+                <fieldset>
+                    <legend>Type</legend>
+                    <label><input type="checkbox" class="filter" value="skill"> Skills</label>
+                    <label><input type="checkbox" class="filter" value="faculty"> Faculties</label>
+                    <label><input type="checkbox" class="filter" value="factor"> Factors</label>
+                </fieldset>
+                <!-- Tier Filters -->
+                <fieldset>
+                    <legend>Tier</legend>
+                    <label>Min: <input type="number" id="filter-tier-min" min="0" placeholder="0"></label>
+                    <label>Max: <input type="number" id="filter-tier-max" min="0" placeholder="Any"></label>
+                </fieldset>
+                <!-- Level Filters -->
+                <fieldset>
+                    <legend>Level</legend>
+                    <label>Min: <input type="number" id="filter-level-min" min="0" max="7" placeholder="0"></label>
+                    <label>Max: <input type="number" id="filter-level-max" min="0" max="7" placeholder="7"></label>
+                </fieldset>
+                <!-- Other Filters -->
+                <fieldset>
+                    <legend>Other</legend>
+                    <label><input type="checkbox" id="filter-loose"> Loose Ends</label>
+                </fieldset>
             </div>
             <div id="search-results"></div>
         </div>
         <div id="right-pane">
-            <!-- Dynamic content here -->
+            <div id="db-graph-container">
+                <div id="db-graph-options">
+                    <button id="db-graph-toggle-layout">Toggle Layout</button>
+                </div>
+                <div id="db-graph"></div>
+            </div>
         </div>
     </main>
     <div id="modal" class="modal">
