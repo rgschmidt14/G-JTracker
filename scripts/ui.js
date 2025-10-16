@@ -1,4 +1,4 @@
-import { gameData, getItem, findLooseEnds, evolveItem, saveData, getChildren } from './data.js';
+import { gameData, getItem, findLooseEnds, evolveItem, saveData, getChildren, getCharItemLevel } from './data.js';
 import { getLevelGrade } from './utils.js';
 
 let currentView = 'db'; // or a function reference
@@ -112,6 +112,7 @@ export function createItemCard(item, charId = null) {
 
 export function renderDBView() {
     currentView = 'db';
+    hideNotebookContainer();
     document.getElementById('right-pane').innerHTML = ''; // Clear the pane
     const graphContainer = document.getElementById('db-graph-container');
     if (graphContainer) graphContainer.style.display = 'block';
@@ -164,22 +165,79 @@ function hideGraphContainer() {
     if (graphContainer) graphContainer.style.display = 'none';
 }
 
+function hideNotebookContainer() {
+    const notebookContainer = document.getElementById('notebook-container');
+    if (notebookContainer) notebookContainer.style.display = 'none';
+}
+
+function createProgressBar(level) {
+    const progress = (level / 7) * 100;
+    return `
+        <div class="progress-bar-container">
+            <div class="progress-bar" style="width: ${progress}%"></div>
+            <span>Lvl ${level}</span>
+        </div>
+    `;
+}
+
 export function renderNotebookView() {
     currentView = 'notebook';
     hideGraphContainer();
-    const container = document.getElementById('right-pane');
-    container.innerHTML = '<h2>Notebook</h2>';
-    gameData.characters.forEach(char => {
-        const charDiv = document.createElement('div');
-        charDiv.innerHTML = `<h3>${char.name}</h3>`;
-        char.items.forEach(charItem => charDiv.appendChild(createItemCard(getItem(charItem.id), char.id)));
-        container.appendChild(charDiv);
+    document.getElementById('notebook-container').style.display = 'block';
+
+    const me = gameData.characters.find(c => c.name === 'Me');
+    if (!me) return;
+
+    const sheetContainer = document.getElementById('notebook-me-char-sheet');
+    sheetContainer.innerHTML = `<h3>${me.name}'s Sheet</h3>`;
+
+    me.items.forEach(charItem => {
+        const item = getItem(charItem.id);
+        if (!item) return;
+
+        const itemContainer = document.createElement('div');
+        itemContainer.className = 'notebook-item';
+
+        const card = createItemCard(item, me.id);
+        card.querySelector('h3').insertAdjacentHTML('afterend', createProgressBar(charItem.level));
+
+        const journalContainer = document.createElement('div');
+        journalContainer.className = 'journal-container';
+        journalContainer.innerHTML = '<h4>Journal</h4>';
+        const journalTextArea = document.createElement('textarea');
+        journalTextArea.value = me.journals[item.id] || '';
+        journalTextArea.placeholder = 'Log your progress, thoughts, and discoveries...';
+        journalTextArea.addEventListener('input', () => {
+            me.journals[item.id] = journalTextArea.value;
+            saveData();
+        });
+        journalContainer.appendChild(journalTextArea);
+
+        itemContainer.appendChild(card);
+        itemContainer.appendChild(journalContainer);
+        sheetContainer.appendChild(itemContainer);
     });
+
+    const goalsContainer = document.getElementById('notebook-goals');
+    goalsContainer.innerHTML = '<h3>Goals</h3>';
+    if (me.goals.length === 0) {
+        goalsContainer.innerHTML += '<p>No goals set yet. Go add some!</p>';
+    } else {
+        const goalsList = document.createElement('ul');
+        me.goals.forEach(goal => {
+            const item = getItem(goal.itemId);
+            const li = document.createElement('li');
+            li.textContent = `Reach Level ${goal.targetLevel} in ${item?.name || 'an item'} by ${goal.due}`;
+            goalsList.appendChild(li);
+        });
+        goalsContainer.appendChild(goalsList);
+    }
 }
 
 export function renderRPGView() {
     currentView = 'rpg';
     hideGraphContainer();
+    hideNotebookContainer();
     const container = document.getElementById('right-pane');
     container.innerHTML = '<h2>RPG</h2>';
     gameData.parties.forEach(party => {
@@ -196,6 +254,7 @@ export function renderRPGView() {
 export function renderReferenceView() {
     currentView = 'reference';
     hideGraphContainer();
+    hideNotebookContainer();
     const container = document.getElementById('right-pane');
     container.innerHTML = `
         <h2>Reference</h2>
@@ -312,6 +371,7 @@ export function renderSearchResults() {
 
 export function renderFocalItem(id) {
     hideGraphContainer();
+    hideNotebookContainer();
     const container = document.getElementById('right-pane');
     const item = getItem(id);
     if (!item) return;

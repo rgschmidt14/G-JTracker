@@ -1,4 +1,4 @@
-import { gameData, updateTiers, saveData } from './data.js';
+import { gameData, updateTiers, saveData, getItem } from './data.js';
 import { renderCurrentView, renderSearchResults } from './ui.js';
 
 export function handleCSVImport(e) {
@@ -69,6 +69,58 @@ export function exportCSV() {
     a.download = 'gj_tracker.csv';
     a.click();
     URL.revokeObjectURL(url);
+}
+
+export function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const me = gameData.characters.find(c => c.name === 'Me');
+    if (!me) return;
+
+    doc.text(`${me.name}'s Notebook`, 10, 10);
+
+    // Goals
+    doc.text('Goals', 10, 20);
+    me.goals.forEach((goal, i) => {
+        const item = getItem(goal.itemId);
+        doc.text(`- Reach Lvl ${goal.targetLevel} in ${item?.name || 'N/A'} by ${goal.due}`, 10, 30 + (i * 10));
+    });
+
+    // Items and Checklists
+    let y = 50; // Initial y position
+    me.items.forEach(charItem => {
+        const item = getItem(charItem.id);
+        if (!item) return;
+
+        if (y > 280) { // New page if y exceeds page height
+            doc.addPage();
+            y = 10;
+        }
+
+        doc.text(`Item: ${item.name} (Lvl ${charItem.level})`, 10, y);
+        y += 10;
+
+        Object.entries(item.checklists).forEach(([lvl, tasks]) => {
+            if (tasks.length > 0) {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 10;
+                }
+                doc.text(`  Lvl ${lvl}:`, 15, y);
+                y += 7;
+                tasks.forEach(task => {
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 10;
+                    }
+                    doc.text(`    - ${task.replace(/^- /, '')}`, 20, y);
+                    y += 7;
+                });
+            }
+        });
+    });
+
+    doc.save('notebook.pdf');
 }
 
 export function exportJSON() {

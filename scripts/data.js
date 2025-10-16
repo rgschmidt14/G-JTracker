@@ -15,6 +15,24 @@ export function saveData() {
 export function loadData() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) Object.assign(gameData, JSON.parse(saved));
+
+    // Ensure a default "Me" character exists for Notebook mode
+    if (!gameData.characters.some(c => c.name === 'Me')) {
+        gameData.characters.push({
+            id: 'char_me',
+            name: 'Me',
+            items: [],
+            goals: [],
+            journals: {}
+        });
+    }
+
+    // Ensure all characters have the new fields
+    gameData.characters.forEach(char => {
+        if (!char.goals) char.goals = [];
+        if (!char.journals) char.journals = {};
+    });
+
     applyTheme();
 }
 
