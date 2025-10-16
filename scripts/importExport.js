@@ -7,6 +7,7 @@ export function handleCSVImport(e) {
         header: true,
         complete: (results) => {
             results.data.forEach(row => {
+                if (!row.name || !row.type) return; // Skip empty/invalid rows
                 // Parse row to item object, check duplicates by id/name, merge/add
                 const existing = gameData.items.find(i => i.id === row.id || i.name === row.name);
                 if (existing) {

@@ -1,3 +1,4 @@
+import { applyTheme } from './utils.js';
 export const gameData = {
     items: [],
     characters: [],
