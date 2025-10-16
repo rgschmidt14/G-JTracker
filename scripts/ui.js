@@ -3,6 +3,7 @@ import { getLevelGrade } from './utils.js';
 import { renderRPGView as renderRPGViewFromModule } from './rpg.js';
 
 let currentView = 'db';
+let cachedSearchResults = [];
 
 export function renderCurrentView() {
     // Hide all containers first
@@ -57,9 +58,13 @@ export function createItemCard(item, charId = null) {
     card.className = 'skill-card';
     const level = charId ? getCharItemLevel(charId, item.id) : item.level;
 
+    const emojiBadge = Object.entries(gameData.settings.emojis)
+        .find(([key]) => item.name.toLowerCase().includes(key))
+        ?.[1] || '';
+
     card.innerHTML = `
         <h3>
-            ${item.name}
+            ${item.name} ${emojiBadge}
             <span class="item-meta">
                 (${item.type}, T${item.tier}, Lvl ${level} ${getLevelGrade(level)})
                 ${item.isPrime ? '℗' : ''}
@@ -267,10 +272,23 @@ export function renderReferenceView() {
             </div>
             <div id="loose-ends-section">
                 <h3>Loose Ends</h3>
+                <button id="suggest-btn">Suggest</button>
+                <div id="suggestion-container"></div>
                 <div id="loose-ends-container"></div>
             </div>
         </div>
     `;
+
+    document.getElementById('suggest-btn').addEventListener('click', () => {
+        const suggestionContainer = document.getElementById('suggestion-container');
+        const childlessSkills = findLooseEnds().filter(item => item.isPrime && item.type === 'skill');
+        if (childlessSkills.length > 0) {
+            const suggestion = `Consider adding two children to "${childlessSkills[0].name}" based on existing prime factors.`;
+            suggestionContainer.innerHTML = `<p>${suggestion}</p>`;
+        } else {
+            suggestionContainer.innerHTML = '<p>No childless skills found for suggestions.</p>';
+        }
+    });
 
     const renderSortedList = () => {
         const sortBy = document.getElementById('sort-by').value;
@@ -323,10 +341,7 @@ export function renderReferenceView() {
     renderLooseEnds();
 }
 
-export function renderSearchResults() {
-    const results = document.getElementById('search-results');
-    results.innerHTML = '';
-
+export function filterAndCacheResults() {
     const query = document.getElementById('search-bar').value.toLowerCase();
     const typeFilters = Array.from(document.querySelectorAll('.filter:checked')).map(f => f.value);
     const looseFilter = document.getElementById('filter-loose').checked;
@@ -335,7 +350,7 @@ export function renderSearchResults() {
     const levelMin = parseInt(document.getElementById('filter-level-min').value) || 0;
     const levelMax = parseInt(document.getElementById('filter-level-max').value) || 7;
 
-    const filteredItems = gameData.items.filter(item => {
+    cachedSearchResults = gameData.items.filter(item => {
         if (query && !item.name.toLowerCase().includes(query)) return false;
         if (typeFilters.length && !typeFilters.includes(item.type)) return false;
         if (looseFilter && !findLooseEnds().some(l => l.id === item.id)) return false;
@@ -344,12 +359,41 @@ export function renderSearchResults() {
         return true;
     });
 
-    filteredItems.forEach(item => {
+    renderSearchResults(1);
+}
+
+export function renderSearchResults(page = 1) {
+    const results = document.getElementById('search-results');
+    results.innerHTML = '';
+    const ITEMS_PER_PAGE = 20;
+
+    const paginatedItems = cachedSearchResults.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+    paginatedItems.forEach(item => {
         const btn = document.createElement('button');
         btn.textContent = `${item.name} (T${item.tier}, L${item.level})`;
         btn.onclick = () => renderFocalItem(item.id);
         results.appendChild(btn);
     });
+
+    const totalPages = Math.ceil(cachedSearchResults.length / ITEMS_PER_PAGE);
+    if (totalPages > 1) {
+        const paginationContainer = document.createElement('div');
+        paginationContainer.className = 'pagination';
+        if (page > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '<< Prev';
+            prevBtn.onclick = () => renderSearchResults(page - 1);
+            paginationContainer.appendChild(prevBtn);
+        }
+        if (page < totalPages) {
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Next >>';
+            nextBtn.onclick = () => renderSearchResults(page + 1);
+            paginationContainer.appendChild(nextBtn);
+        }
+        results.appendChild(paginationContainer);
+    }
 }
 
 export function renderFocalItem(id) {

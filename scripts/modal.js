@@ -1,9 +1,34 @@
 import { getItem, updateTiers, saveData } from './data.js';
 import { renderCurrentView } from './ui.js';
+import { confirmDivineUnlock } from './utils.js';
 
 export function openModal(mode, id = null) {
     const modal = document.getElementById('modal');
     const form = document.getElementById('item-form');
+
+    if (mode === 'help') {
+        form.innerHTML = `
+            <h2>In-App Docs</h2>
+            <p><strong>Levels:</strong></p>
+            <ul>
+                <li><strong>F (0):</strong> Novice</li>
+                <li><strong>D (1):</strong> Basic understanding</li>
+                <li><strong>C (2):</strong> Competent</li>
+                <li><strong>B (3):</strong> Proficient</li>
+                <li><strong>A (4):</strong> Pushing limits of human potential</li>
+                <li><strong>S (6):</strong> Supernatural or divine insight</li>
+                <li><strong>Z (7):</strong> Unfathomable - requires Divine Unlock</li>
+            </ul>
+            <p><strong>Evolutions:</strong> "Evolving" an item shifts its checklists down, making room for new growth at the top.</p>
+            <p><strong>Loose Ends:</strong> Items with issues, like wrong parent counts or being childless, are flagged for review.</p>
+            <p>True excellence is something to be proud of! 🧀🌞</p>
+            <button type="button" id="close-help-modal">Close</button>
+        `;
+        document.getElementById('close-help-modal').addEventListener('click', closeModal);
+        modal.style.display = 'flex';
+        return;
+    }
+
     const item = mode === 'edit' ? getItem(id) : {
         id: `item-${Date.now()}`,
         name: '',
@@ -26,6 +51,7 @@ export function openModal(mode, id = null) {
                 <option value="factor" ${item.type === 'factor' ? 'selected' : ''}>Factor</option>
             </select>
         </label>
+        <label>Level: <input type="number" name="level" value="${item.level}" min="0" max="7"></label>
         <label>Description: <textarea name="description">${item.description}</textarea></label>
         <fieldset>
             <legend>Parents</legend>
@@ -96,10 +122,15 @@ export function openModal(mode, id = null) {
             ...item,
             name: formData.get('name'),
             type: formData.get('type'),
+            level: parseInt(formData.get('level')),
             description: formData.get('description'),
             notes: formData.get('notes'),
             checklists: {}
         };
+
+        if (!confirmDivineUnlock(updatedItem.level)) {
+            updatedItem.level = 6;
+        }
 
         // Parse checklists
         form.querySelectorAll('.tab-content textarea').forEach((area, i) => {

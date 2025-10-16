@@ -1,10 +1,20 @@
-import { applyTheme } from './utils.js';
+import { applyTheme, confirmDivineUnlock } from './utils.js';
 
 export const gameData = {
     items: [],
     characters: [],
     parties: [],
-    settings: { theme: 'light', discoveryMode: false }
+    settings: {
+        theme: 'light',
+        discoveryMode: false,
+        emojis: {
+            fox: '🦊',
+            raccoon: '🦝',
+            animal: '🐾',
+            pilot: '🛩️',
+            flight: '🪶'
+        }
+    }
 };
 const STORAGE_KEY = 'GJTracker';
 
@@ -195,12 +205,8 @@ export function incrementLevel(id, charId = null) {
         if (!confirm("This requires enhancement. Proceed?")) return;
         item.enhanced = true;
     }
-    if (newLevel === 7) {
-        if (!confirm("Is this truly fathomable? Or is it divine insight?")) {
-            newLevel = 6; // Bump down to S-tier
-            item.level = newLevel;
-            // Maybe add a special note or flag here
-        }
+    if (!confirmDivineUnlock(newLevel)) {
+        newLevel = 6;
     }
 
     if (charId) {

@@ -14,3 +14,10 @@ export function toggleTheme() {
     saveData();
     applyTheme();
 }
+
+export function confirmDivineUnlock(level) {
+    if (level === 7) {
+        return confirm("Is this a Divine Unlock? This is reserved for truly exceptional, faith-based insights.");
+    }
+    return true;
+}
