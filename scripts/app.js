@@ -6,11 +6,12 @@ import {
     renderReferenceView,
     renderSearchResults
 } from './ui.js';
-import { closeModal } from './modal.js';
+import { openModal, closeModal } from './modal.js';
 import { handleCSVImport, exportCSV, exportJSON } from './importExport.js';
 import { toggleTheme } from './utils.js';
 
 // Event listeners
+document.getElementById('add-item-btn').addEventListener('click', () => openModal('add'));
 document.getElementById('close-modal').addEventListener('click', closeModal);
 document.getElementById('db-tab').addEventListener('click', renderDBView);
 document.getElementById('notebook-tab').addEventListener('click', renderNotebookView);

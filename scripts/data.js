@@ -27,14 +27,19 @@ export function updateTiers() {
     while (changed) {
         changed = false;
         gameData.items.forEach(item => {
+            const oldTier = item.tier;
             const newTier = item.parents.length ? Math.max(...item.parents.map(p => (getItem(p.id)?.tier || 0))) + 1 : 0;
-            if (item.tier !== newTier) { item.tier = newTier; changed = true; }
+            if (oldTier !== newTier) {
+                item.tier = newTier;
+                changed = true;
+            }
+            item.isPrime = getChildren(item.id).length === 0;
         });
     }
 }
 
 export function findLooseEnds() {
-    return gameData.items.filter(item => (item.tier > 0 && item.parents.length !== 2) || (getChildren(item.id).length === 0 && item.type !== 'factor'));
+    return gameData.items.filter(item => (item.tier > 0 && item.parents.length !== 2) || (item.isPrime && item.type !== 'factor'));
 }
 
 export function getChildren(id) {
@@ -59,8 +64,66 @@ export function getCharItemLevel(charId, itemId) {
 
 export function evolveItem(id) {
     const item = getItem(id);
-    for (let l = 7; l > 1; l--) item.checklists[l] = item.checklists[l-1] || [];
-    item.checklists[1] = [];
-    item.history.push({ date: new Date().toISOString().split('T')[0], change: 'Evolved by innovation' });
+    if (!item) return;
+
+    // Shift checklists down
+    for (let l = 7; l > 1; l--) {
+        item.checklists[l] = item.checklists[l - 1] || [];
+    }
+    item.checklists[1] = []; // Clear lowest level
+
+    // Add to history
+    if (!item.history) item.history = [];
+    item.history.push({
+        date: new Date().toISOString().split('T')[0],
+        change: `Evolved (level ${item.level} checklists shifted down).`
+    });
+
+    saveData();
+}
+
+export function incrementLevel(id, charId = null) {
+    const item = getItem(id);
+    if (!item) return;
+
+    const currentLevel = charId ? getCharItemLevel(charId, id) : item.level;
+    if (currentLevel >= 7) return;
+
+    // Check if current level's checklist is complete
+    const checklist = item.checklists[currentLevel + 1] || [];
+    if (charId) {
+        const char = gameData.characters.find(c => c.id === charId);
+        const charItem = char?.items.find(i => i.id === id);
+        const progress = charItem?.checklistProgress[currentLevel + 1] || [];
+        if (checklist.length > 0 && !checklist.every((_, i) => progress[i])) {
+            return; // Not complete
+        }
+    }
+
+    // Check prerequisites for the next level
+    if (!canAcquire(id, charId)) return;
+
+    // Level up
+    let newLevel = currentLevel + 1;
+    if (newLevel > 5 && !item.enhanced) {
+        if (!confirm("This requires enhancement. Proceed?")) return;
+        item.enhanced = true;
+    }
+    if (newLevel === 7) {
+        if (!confirm("Is this truly fathomable? Or is it divine insight?")) {
+            newLevel = 6; // Bump down to S-tier
+            item.level = newLevel;
+            // Maybe add a special note or flag here
+        }
+    }
+
+    if (charId) {
+        const char = gameData.characters.find(c => c.id === charId);
+        const charItem = char.items.find(i => i.id === id);
+        if (charItem) charItem.level = newLevel;
+    } else {
+        item.level = newLevel;
+    }
+
     saveData();
 }

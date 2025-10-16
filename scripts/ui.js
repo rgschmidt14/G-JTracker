@@ -25,43 +25,88 @@ export function renderCurrentView() {
 function updateChecklist(charId, itemId, lvl, idx, checked) {
     const char = gameData.characters.find(c => c.id === charId);
     const charItem = char.items.find(i => i.id === itemId);
+    if (!charItem.checklistProgress) charItem.checklistProgress = {};
     if (!charItem.checklistProgress[lvl]) charItem.checklistProgress[lvl] = [];
     charItem.checklistProgress[lvl][idx] = checked;
-    if (charItem.checklistProgress[lvl].every(p => p)) {
-        charItem.level = Math.max(charItem.level, parseInt(lvl) + 1);
+
+    // Check for level up
+    const item = getItem(itemId);
+    const checklist = item.checklists[charItem.level + 1] || [];
+    const progress = charItem.checklistProgress[charItem.level + 1] || [];
+    if (checklist.length > 0 && checklist.every((_, i) => progress[i])) {
+        incrementLevel(itemId, charId);
     }
+
     saveData();
     renderCurrentView();
 }
 
 function getChecklistProgress(charId, itemId, lvl) {
     const char = gameData.characters.find(c => c.id === charId);
-    const charItem = char.items.find(i => i.id === itemId);
-    return charItem?.checklistProgress[lvl] || [];
+    const charItem = char?.items.find(i => i.id === itemId);
+    return charItem?.checklistProgress?.[lvl] || [];
 }
 
 export function createItemCard(item, charId = null) {
     const card = document.createElement('div');
     card.className = 'skill-card';
+    const level = charId ? getCharItemLevel(charId, item.id) : item.level;
+
     card.innerHTML = `
-        <h3>${item.name} (${item.type}, T${item.tier}, Lvl ${item.level} (${getLevelGrade(item.level)})</h3>
-        <div>${window.marked.parse(item.description)}</div>
-        <div>Parents: ${item.parents.map(p => `${getItem(p.id)?.name || 'Unknown'} (Req Lvl ${p.requiredLevel})`).join(', ')}</div>
+        <h3>
+            ${item.name}
+            <span class="item-meta">
+                (${item.type}, T${item.tier}, Lvl ${level} ${getLevelGrade(level)})
+                ${item.isPrime ? '℗' : ''}
+                ${item.enhanced ? '✨' : ''}
+            </span>
+        </h3>
+        <div>${window.marked.parse(item.description || '')}</div>
+        <div><strong>Parents:</strong> ${item.parents.map(p => `${getItem(p.id)?.name || 'Unknown'} (Req Lvl ${p.requiredLevel})`).join(', ') || 'None'}</div>
+
         <div class="checklists">
-            ${Object.entries(item.checklists).map(([lvl, tasks]) => `
+            ${Object.entries(item.checklists).sort(([a], [b]) => a - b).map(([lvl, tasks]) => tasks.length > 0 ? `
                 <strong>Lvl ${lvl} (${getLevelGrade(parseInt(lvl))}):</strong>
-                <ul>${tasks.map((task, idx) => `<li><input type="checkbox" ${charId ? '' : 'disabled'} data-lvl="${lvl}" data-idx="${idx}">${window.marked.parseInline(task.slice(2))}</li>`).join('')}</ul>
-            `).join('')}
+                <ul>${tasks.map((task, idx) => `
+                    <li>
+                        <label>
+                            <input
+                                type="checkbox"
+                                ${charId ? '' : 'disabled'}
+                                data-lvl="${lvl}"
+                                data-idx="${idx}"
+                                ${getChecklistProgress(charId, item.id, lvl)[idx] ? 'checked' : ''}
+                            >
+                            ${window.marked.parseInline(task.replace(/^- /, ''))}
+                        </label>
+                    </li>`).join('')}
+                </ul>
+            ` : '').join('')}
         </div>
-        <div>Notes: ${window.marked.parse(item.notes || '')}</div>
-        <div>History: ${item.history.map(h => `${h.date}: ${h.change}`).join('<br>')}</div>
+
+        <div><strong>Notes:</strong> ${window.marked.parse(item.notes || '')}</div>
+        <div><strong>History:</strong> ${(item.history || []).map(h => `${h.date}: ${h.change}`).join('<br>')}</div>
+        <div class="card-actions">
+            <button class="evolve-btn">Evolve</button>
+        </div>
     `;
+
+    // Add event listeners
     if (charId) {
         card.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = getChecklistProgress(charId, item.id, cb.dataset.lvl)[cb.dataset.idx] || false;
-            cb.addEventListener('change', () => updateChecklist(charId, item.id, cb.dataset.lvl, cb.dataset.idx, cb.checked));
+            cb.addEventListener('change', () => {
+                updateChecklist(charId, item.id, cb.dataset.lvl, cb.dataset.idx, cb.checked);
+            });
         });
     }
+
+    card.querySelector('.evolve-btn').addEventListener('click', () => {
+        if (confirm(`Are you sure you want to evolve "${item.name}"? This will shift checklists down.`)) {
+            evolveItem(item.id);
+            renderCurrentView();
+        }
+    });
+
     return card;
 }
 
