@@ -6,11 +6,6 @@ let currentView = 'db';
 let cachedSearchResults = [];
 
 export function renderCurrentView() {
-    // Hide all containers first
-    hideGraphContainer();
-    hideNotebookContainer();
-    hideRPGContainer();
-
     switch (currentView) {
         case 'db':
             renderDBView();
@@ -27,6 +22,22 @@ export function renderCurrentView() {
         default:
             renderDBView();
     }
+}
+
+const viewContainers = [
+    'db-graph-container',
+    'notebook-container',
+    'rpg-container',
+    'reference-container'
+];
+
+export function showView(viewId) {
+    viewContainers.forEach(id => {
+        const container = document.getElementById(id);
+        if (container) {
+            container.style.display = id === viewId ? 'block' : 'none';
+        }
+    });
 }
 
 function updateChecklist(charId, itemId, lvl, idx, checked) {
@@ -121,9 +132,12 @@ export function createItemCard(item, charId = null) {
 
 export function renderDBView() {
     currentView = 'db';
-    document.getElementById('right-pane').innerHTML = '';
-    const graphContainer = document.getElementById('db-graph-container');
-    if (graphContainer) graphContainer.style.display = 'block';
+
+    const container = document.getElementById('db-graph');
+    if (gameData.items.length === 0) {
+        container.innerHTML = '<p>No items to display. Add some items to get started!</p>';
+        return;
+    }
 
     const nodes = new vis.DataSet(gameData.items.map(item => ({
         id: item.id,
@@ -168,21 +182,6 @@ export function renderDBView() {
     };
 }
 
-function hideGraphContainer() {
-    const graphContainer = document.getElementById('db-graph-container');
-    if (graphContainer) graphContainer.style.display = 'none';
-}
-
-function hideNotebookContainer() {
-    const notebookContainer = document.getElementById('notebook-container');
-    if (notebookContainer) notebookContainer.style.display = 'none';
-}
-
-function hideRPGContainer() {
-    const rpgContainer = document.getElementById('rpg-container');
-    if (rpgContainer) rpgContainer.style.display = 'none';
-}
-
 function createProgressBar(level) {
     const progress = (level / 7) * 100;
     return `
@@ -195,7 +194,6 @@ function createProgressBar(level) {
 
 export function renderNotebookView() {
     currentView = 'notebook';
-    document.getElementById('notebook-container').style.display = 'block';
 
     const me = gameData.characters.find(c => c.name === 'Me');
     if (!me) return;
@@ -248,13 +246,12 @@ export function renderNotebookView() {
 
 function renderRPGView() {
     currentView = 'rpg';
-    document.getElementById('rpg-container').style.display = 'block';
     renderRPGViewFromModule();
 }
 
 export function renderReferenceView() {
     currentView = 'reference';
-    const container = document.getElementById('right-pane');
+    const container = document.getElementById('reference-container');
     container.innerHTML = `
         <h2>Reference</h2>
         <div id="reference-sections">

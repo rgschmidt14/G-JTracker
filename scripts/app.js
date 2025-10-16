@@ -3,9 +3,9 @@ import {
     renderDBView,
     renderNotebookView,
     renderReferenceView,
-    filterAndCacheResults
+    filterAndCacheResults,
+    showView
 } from './ui.js';
-import { renderRPGView } from './rpg.js';
 import { openModal, closeModal } from './modal.js';
 import { handleCSVImport, exportCSV, exportJSON, exportPDF } from './importExport.js';
 import { toggleTheme } from './utils.js';
@@ -13,10 +13,22 @@ import { toggleTheme } from './utils.js';
 // Event listeners
 document.getElementById('add-item-btn').addEventListener('click', () => openModal('add'));
 document.getElementById('close-modal').addEventListener('click', closeModal);
-document.getElementById('db-tab').addEventListener('click', renderDBView);
-document.getElementById('notebook-tab').addEventListener('click', renderNotebookView);
-document.getElementById('rpg-tab').addEventListener('click', renderRPGView);
-document.getElementById('reference-tab').addEventListener('click', renderReferenceView);
+document.getElementById('db-tab').addEventListener('click', () => {
+    renderDBView();
+    showView('db-graph-container');
+});
+document.getElementById('notebook-tab').addEventListener('click', () => {
+    renderNotebookView();
+    showView('notebook-container');
+});
+document.getElementById('rpg-tab').addEventListener('click', () => {
+    renderRPGView();
+    showView('rpg-container');
+});
+document.getElementById('reference-tab').addEventListener('click', () => {
+    renderReferenceView();
+    showView('reference-container');
+});
 document.getElementById('search-bar').addEventListener('input', filterAndCacheResults);
 document.querySelectorAll('.filter').forEach(f => f.addEventListener('change', filterAndCacheResults));
 document.getElementById('filter-loose').addEventListener('change', filterAndCacheResults);
@@ -40,7 +52,8 @@ document.addEventListener('keydown', e => {
 
 // Init
 loadData();
-renderDBView(); // Default view
+renderDBView();
+showView('db-graph-container');
 filterAndCacheResults();
 
 // Check for reminders on load
