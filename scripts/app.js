@@ -2,10 +2,10 @@ import { gameData, loadData, getItem } from './data.js';
 import {
     renderDBView,
     renderNotebookView,
-    renderRPGView,
     renderReferenceView,
     filterAndCacheResults
 } from './ui.js';
+import { renderRPGView } from './rpg.js';
 import { openModal, closeModal } from './modal.js';
 import { handleCSVImport, exportCSV, exportJSON, exportPDF } from './importExport.js';
 import { toggleTheme } from './utils.js';
