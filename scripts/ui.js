@@ -152,7 +152,6 @@ export function renderDBView() {
         )
     );
 
-    const container = document.getElementById('db-graph');
     const data = { nodes, edges };
     const options = {
         layout: {
