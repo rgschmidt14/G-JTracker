@@ -1,5 +1,5 @@
 import { getItem, updateTiers, saveData } from './data.js';
-import { renderCurrentView } from './ui.js';
+import { renderCurrentView, filterAndCacheResults } from './ui.js';
 import { confirmDivineUnlock } from './utils.js';
 
 export function openModal(mode, id = null) {
@@ -114,47 +114,55 @@ export function openModal(mode, id = null) {
     });
     form.querySelector('.tab-link').click(); // Show first tab
 
-    // Form Submission
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        const formData = new FormData(form);
-        const updatedItem = {
-            ...item,
-            name: formData.get('name'),
-            type: formData.get('type'),
-            level: parseInt(formData.get('level')),
-            description: formData.get('description'),
-            notes: formData.get('notes'),
-            checklists: {}
-        };
+    // Form Submission is handled by a single, persistent event listener
+    modal.style.display = 'flex';
+}
 
-        if (!confirmDivineUnlock(updatedItem.level)) {
-            updatedItem.level = 6;
-        }
+function handleFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const itemId = form.dataset.itemId;
+    const item = getItem(itemId) || {}; // Get existing or create new
 
-        // Parse checklists
-        form.querySelectorAll('.tab-content textarea').forEach((area, i) => {
-            const lvl = i + 1;
-            updatedItem.checklists[lvl] = area.value.split('\n').filter(line => line.startsWith('- '));
-        });
+    const updatedItem = {
+        ...item,
+        id: itemId,
+        name: formData.get('name'),
+        type: formData.get('type'),
+        level: parseInt(formData.get('level')),
+        description: formData.get('description'),
+        notes: formData.get('notes'),
+        checklists: {}
+    };
 
-        // Parse parents (crude implementation, needs typeahead)
-        const parentNames = form.querySelectorAll('.parent-name');
-        const parentReqs = form.querySelectorAll('.parent-req');
-        updatedItem.parents = Array.from(parentNames).map((input, i) => {
-            const found = gameData.items.find(it => it.name.toLowerCase() === input.value.toLowerCase());
-            return { id: found?.id || '', requiredLevel: parseInt(parentReqs[i].value) };
-        });
+    if (!confirmDivineUnlock(updatedItem.level)) {
+        updatedItem.level = 6;
+    }
 
-        // Validation
+    // Parse checklists
+    form.querySelectorAll('.tab-content textarea').forEach((area, i) => {
+        const lvl = i + 1;
+        updatedItem.checklists[lvl] = area.value.split('\n').filter(line => line.startsWith('- '));
+    });
+
+    // Parse parents
+    const parentNames = form.querySelectorAll('.parent-name');
+    const parentReqs = form.querySelectorAll('.parent-req');
+    updatedItem.parents = Array.from(parentNames).map((input, i) => {
+        const found = gameData.items.find(it => it.name.toLowerCase() === input.value.toLowerCase());
+        return { id: found?.id || '', requiredLevel: parseInt(parentReqs[i].value) };
+    }).filter(p => p.id);
+
+
+    try {
         const newTier = updatedItem.parents.length ? Math.max(...updatedItem.parents.map(p => (getItem(p.id)?.tier || 0))) + 1 : 0;
         if (newTier > 0 && updatedItem.parents.length !== 2) {
             alert('Items in Tier 1 or higher must have exactly two parents.');
             return;
         }
 
-        // Save
-        const existingIndex = gameData.items.findIndex(i => i.id === item.id);
+        const existingIndex = gameData.items.findIndex(i => i.id === itemId);
         if (existingIndex > -1) {
             gameData.items[existingIndex] = updatedItem;
         } else {
@@ -163,12 +171,14 @@ export function openModal(mode, id = null) {
 
         updateTiers();
         saveData();
-        closeModal();
         renderCurrentView();
-    };
-
-    modal.style.display = 'flex';
+        filterAndCacheResults();
+    } finally {
+        closeModal();
+    }
 }
+
+document.getElementById('item-form').addEventListener('submit', handleFormSubmit);
 
 export function closeModal() {
     document.getElementById('modal').style.display = 'none';

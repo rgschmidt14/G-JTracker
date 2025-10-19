@@ -69,7 +69,7 @@ export function createItemCard(item, charId = null) {
     card.className = 'skill-card';
     const level = charId ? getCharItemLevel(charId, item.id) : item.level;
 
-    const emojiBadge = Object.entries(gameData.settings.emojis)
+    const emojiBadge = Object.entries(gameData.settings.emojis || {})
         .find(([key]) => item.name.toLowerCase().includes(key))
         ?.[1] || '';
 
@@ -86,7 +86,7 @@ export function createItemCard(item, charId = null) {
         <div><strong>Parents:</strong> ${item.parents.map(p => `${getItem(p.id)?.name || 'Unknown'} (Req Lvl ${p.requiredLevel})`).join(', ') || 'None'}</div>
 
         <div class="checklists">
-            ${Object.entries(item.checklists).sort(([a], [b]) => a - b).map(([lvl, tasks]) => tasks.length > 0 ? `
+            ${Object.entries(item.checklists || {}).sort(([a], [b]) => a - b).map(([lvl, tasks]) => tasks.length > 0 ? `
                 <strong>Lvl ${lvl} (${getLevelGrade(parseInt(lvl))}):</strong>
                 <ul>${tasks.map((task, idx) => `
                     <li>
@@ -243,7 +243,7 @@ export function renderNotebookView() {
     }
 }
 
-function renderRPGView() {
+export function renderRPGView() {
     currentView = 'rpg';
     renderRPGViewFromModule();
 }

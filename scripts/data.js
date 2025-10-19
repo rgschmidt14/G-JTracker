@@ -96,19 +96,24 @@ export function getItem(id) {
 }
 
 export function updateTiers() {
+    gameData.items.forEach(i => i.tier = 0);
+
     let changed = true;
-    while (changed) {
+    while(changed) {
         changed = false;
         gameData.items.forEach(item => {
-            const oldTier = item.tier;
             const newTier = item.parents.length ? Math.max(...item.parents.map(p => (getItem(p.id)?.tier || 0))) + 1 : 0;
-            if (oldTier !== newTier) {
+            if (item.tier !== newTier) {
                 item.tier = newTier;
                 changed = true;
             }
-            item.isPrime = getChildren(item.id).length === 0;
         });
     }
+
+    // After tiers are stable, calculate isPrime
+    gameData.items.forEach(item => {
+        item.isPrime = getChildren(item.id).length === 0;
+    });
 }
 
 export function findLooseEnds() {

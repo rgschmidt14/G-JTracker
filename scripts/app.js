@@ -2,6 +2,7 @@ import { gameData, loadData, getItem } from './data.js';
 import {
     renderDBView,
     renderNotebookView,
+    renderRPGView,
     renderReferenceView,
     filterAndCacheResults,
     showView
